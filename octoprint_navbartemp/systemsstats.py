@@ -35,7 +35,7 @@ class SystemStats(octoprint.plugin.StartupPlugin):
                 self._logger.debug("Hardware: %s", self.hardware)
 
             from os.path import isFile
-            if (isFile("/sys/devices/virtual/thermal/thermal_zone0/temp"))
+            if isFile("/sys/devices/virtual/thermal/thermal_zone0/temp"):
                 self.tempFunc = temp_from_thermal
 
                 self.hardware_overrides()
