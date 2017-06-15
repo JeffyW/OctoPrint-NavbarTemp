@@ -17,6 +17,7 @@ class NavBarPlugin(octoprint.plugin.StartupPlugin,
 
     def __init__(self):
         self.isRaspi = False
+        self.isSOC = False
         self.debugMode = False      # to simulate temp on Win/Mac
         self.displayRaspiTemp = True
         self._checkTempTimer = None
@@ -25,11 +26,16 @@ class NavBarPlugin(octoprint.plugin.StartupPlugin,
         self.displayRaspiTemp = self._settings.get(["displayRaspiTemp"])
         self._logger.debug("displayRaspiTemp: %s" % self.displayRaspiTemp)
 
-        if sys.platform == "linux2":
+        if self.debugMode:
+            self.isRaspi = True
+            if self.displayRaspiTemp:
+                self.startTimer(5.0)
+        elif sys.platform == "linux2":
             with open('/proc/cpuinfo', 'r') as infile:
                     cpuinfo = infile.read()
             # Match a line like 'Hardware   : BCM2709'
             match = re.search('^Hardware\s+:\s+(\w+)$', cpuinfo, flags=re.MULTILINE | re.IGNORECASE)
+            self._logger.debug("Hardware: %s", match.group(1))
 
             if match is None:
                 # Couldn't find the hardware, assume it isn't a pi.
@@ -40,14 +46,13 @@ class NavBarPlugin(octoprint.plugin.StartupPlugin,
             elif match.group(1) == 'BCM2709':
                 self._logger.debug("Pi 2")
                 self.isRaspi = True
+            elif match.group(1) == 'sun50iw1p1':
+                self._logger.debug("Pine A64")
+                self.isSOC = True
 
-            if self.isRaspi and self.displayRaspiTemp:
+            if (self.isRaspi or self.isSOC) and self.displayRaspiTemp:
                 self._logger.debug("Let's start RepeatedTimer!")
                 self.startTimer(30.0)
-        elif self.debugMode:
-            self.isRaspi = True
-            if self.displayRaspiTemp:
-                self.startTimer(5.0)
 
         self._logger.debug("is Raspberry Pi? - %s" % self.isRaspi)
 
@@ -56,29 +61,41 @@ class NavBarPlugin(octoprint.plugin.StartupPlugin,
         self._checkTempTimer.start()
 
     def checkRaspiTemp(self):
-        from sarge import run, Capture
+        self._logger.info("Checking Raspberry Pi internal temperature")
 
-        self._logger.debug("Checking Raspberry Pi internal temperature")
-
-        if sys.platform == "linux2":
-            p = run("/opt/vc/bin/vcgencmd measure_temp", stdout=Capture())
-            p = p.stdout.text
-
-        elif self.debugMode:
+        if self.debugMode:
             import random
             def randrange_float(start, stop, step):
                 return random.randint(0, int((stop - start) / step)) * step + start
             p = "temp=%s'C" % randrange_float(5, 60, 0.1)
 
-        self._logger.debug("response from sarge: %s" % p)
+        elif sys.platform == "linux2":
+            if self.isRaspi:
+                from sarge import run, Capture
+                p = run("cat /etc/armbianmonitor/datasources/soctemp", stdout=Capture())
+                if p.returncode==1:
+                    self.isRaspi = False
+                    self._logger.error("SoC temperature not found.")
+                else:
+                    p = p.stdout.text
+                    self._logger.debug("response from sarge: %s" % p)
+                    match = re.search('=(.*)\'', p)
 
-        match = re.search('=(.*)\'', p)
+            elif self.isSOC:
+                self._logger.debug("Reading /sys/devices/virtual/thermal/thermal_zone0/temp")
+                with open('/sys/devices/virtual/thermal/thermal_zone0/temp', 'r') as content_file:
+                    p = content_file.read()
+                self._logger.debug("Read: %s" % p)
+                match = re.search('(\d+)', p)
+
         if not match:
+            self._logger.error("Invalid temperature format.")
             self.isRaspi = False
+            self.isSOC = False
         else:
             temp = match.group(1)
-            self._logger.debug("match: %s" % temp)
-            self._plugin_manager.send_plugin_message(self._identifier, dict(israspi=self.isRaspi, raspitemp=temp))
+            self._logger.debug("Temperature: %s" % temp)
+            self._plugin_manager.send_plugin_message(self._identifier, dict(israspi=self.isRaspi, issoc=self.isSOC, raspitemp=temp))
 
 
 	##~~ SettingsPlugin
@@ -103,7 +120,7 @@ class NavBarPlugin(octoprint.plugin.StartupPlugin,
 
 	##~~ TemplatePlugin API
     def get_template_configs(self):
-        if self.isRaspi:
+        if self.isRaspi or self.isSOC:
             return [
                 dict(type="settings", template="navbartemp_settings_raspi.jinja2")
             ]
@@ -127,12 +144,12 @@ class NavBarPlugin(octoprint.plugin.StartupPlugin,
 
                 # version check: github repository
                 type="github_release",
-                user="imrahil",
+                user="JeffyW",
                 repo="OctoPrint-NavbarTemp",
                 current=self._plugin_version,
 
                 # update method: pip w/ dependency links
-                pip="https://github.com/imrahil/OctoPrint-NavbarTemp/archive/{target_version}.zip"
+                pip="https://github.com/JeffyW/OctoPrint-NavbarTemp/archive/{target_version}.zip"
             )
         )
 

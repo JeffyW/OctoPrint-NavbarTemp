@@ -16,14 +16,16 @@ $(function() {
                 return;
             }
 
-            if (!data.hasOwnProperty("israspi")) {
+            if (data.hasOwnProperty("israspi")) {
+                self.isRaspi(true);
+            } else if (data.hasOwnProperty("issoc")) {
+                self.isRaspi(true);
+            } else {
                 self.isRaspi(false);
                 return;
-            } else {
-                self.isRaspi(true);
             }
 
-            self.raspiTemp(_.sprintf("Raspi: %.1f&deg;C", data.raspitemp));
+            self.raspiTemp(_.sprintf("SoC: %.1f&deg;C", data.raspitemp));
         };
     }
 
