@@ -21,6 +21,7 @@ class SystemStats(octoprint.plugin.StartupPlugin):
         self.tempFunc = None
 
     def on_after_startup(self):
+        self._logger.info("Starting SystemStats")
         if self.debugMode:
             self.hardware = "Debug"
         elif sys.platform.startswith("linux2"):
@@ -34,16 +35,16 @@ class SystemStats(octoprint.plugin.StartupPlugin):
                 self.hardware = match.group(1)
                 self._logger.debug("Hardware: %s", self.hardware)
 
-            from os.path import isFile
-            if isFile("/sys/devices/virtual/thermal/thermal_zone0/temp"):
-                self.tempFunc = temp_from_thermal
+            import os.path
+            if os.path.isfile("/sys/devices/virtual/thermal/thermal_zone0/temp"):
+                self.tempFunc = self.temp_from_thermal
 
                 self.hardware_overrides()
             self.start_timer(5.0)
 
     def start_timer(self, interval):
         self._logger.debug("Starting RepeatedTimer with interval: %d" % interval)
-        self._timer = RepeatedTimer(interval, self.get_stats, run_first=True)
+        self._timer = RepeatedTimer(interval, self.get_system_stats, run_first=True)
         self._timer.start()
 
     def get_system_stats(self):
@@ -59,17 +60,17 @@ class SystemStats(octoprint.plugin.StartupPlugin):
     def hardware_overrides(self):
         if self.hardware == "BCM2708":
             self._logger.debug("Pi 1")
-            self.tempFunc = temp_from_vcgencmd
+            self.tempFunc = self.temp_from_vcgencmd
         elif self.hardware == "BCM2709":
             self._logger.debug("Pi 2")
-            self.tempFunc = temp_from_vcgencmd
+            self.tempFunc = self.temp_from_vcgencmd
         elif self.hardware == "sun50iw1p1":
             self._logger.debug("Pine A64")
     
     def temp_from_thermal(self):
         self._logger.debug("Reading: /sys/devices/virtual/thermal/thermal_zone0/temp")
         with open("/sys/devices/virtual/thermal/thermal_zone0/temp", "r") as content_file:
-            p = content_file.read()
+            p = content_file.read().strip()
         self._logger.debug("Temperature: %s" % p)
         return p
 
@@ -96,6 +97,6 @@ class SystemStats(octoprint.plugin.StartupPlugin):
         return random.randint(0, int((stop - start) / step)) * step + start
 
 __plugin_name__ = "System Stats"
-__plugin_version_ = "0.1.0"
-__plugin_description_ = "A plugin to publish system stats for the OctoPrint server."
-__plugin_implementation_ = SystemStats()
+__plugin_version__ = "0.1.0"
+__plugin_description__ = "A plugin to publish system stats for the OctoPrint server."
+__plugin_implementation__ = SystemStats()
