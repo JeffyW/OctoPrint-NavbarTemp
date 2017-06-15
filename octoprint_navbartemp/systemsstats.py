@@ -95,4 +95,7 @@ class SystemStats(octoprint.plugin.StartupPlugin):
         import random
         return random.randint(0, int((stop - start) / step)) * step + start
 
-__plugin_name__ = "Server Stats Plugin"
+__plugin_name__ = "System Stats"
+__plugin_version_ = "0.1.0"
+__plugin_description_ = "A plugin to publish system stats for the OctoPrint server."
+__plugin_implementation_ = SystemStats()
