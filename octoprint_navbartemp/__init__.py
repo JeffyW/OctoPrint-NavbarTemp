@@ -72,7 +72,7 @@ class NavBarPlugin(octoprint.plugin.StartupPlugin,
         elif sys.platform == "linux2":
             if self.isRaspi:
                 from sarge import run, Capture
-                p = run("cat /etc/armbianmonitor/datasources/soctemp", stdout=Capture())
+                p = run("/opt/vc/bin/vcgencmd measure_temp", stdout=Capture())
                 if p.returncode==1:
                     self.isRaspi = False
                     self._logger.error("SoC temperature not found.")
