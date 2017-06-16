@@ -13,9 +13,10 @@ $(function() {
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {
             if (plugin == "ServerStats") {
+                console.log(data);
                 if (data.hasOwnProperty("temp")) {
                     self.isRaspi(true);
-                    self.raspiTemp(_.sprintf("SoC: %.1f&deg;C", data.temp));
+                    self.raspiTemp(_.sprintf("CPU%%: %.1f MEM%%: %.1f SoC: %.1f&deg;C", data["cpu.%"], data["mem.%"], data["temp"]));
                 } else {
                     self.isRaspi(false);
                 }
