@@ -12,20 +12,14 @@ $(function() {
         };
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {
-            if (plugin != "navbartemp") {
-                return;
-            }
-
-            if (data.hasOwnProperty("israspi")) {
-                self.isRaspi(true);
-            } else if (data.hasOwnProperty("issoc")) {
-                self.isRaspi(true);
-            } else {
-                self.isRaspi(false);
-                return;
-            }
-
-            self.raspiTemp(_.sprintf("SoC: %.1f&deg;C", data.raspitemp));
+            if (plugin == "ServerStats") {
+                if (data.hasOwnProperty("temp")) {
+                    self.isRaspi(true);
+                    self.raspiTemp(_.sprintf("SoC: %.1f&deg;C", data.temp));
+                } else {
+                    self.isRaspi(false);
+                }
+            } else { console.log("Ignoring "+plugin); }
         };
     }
 
