@@ -46,6 +46,9 @@ class NavBarPlugin(octoprint.plugin.StartupPlugin,
             elif match.group(1) == 'BCM2709':
                 self._logger.debug("Pi 2")
                 self.isRaspi = True
+            elif match.group(1) == 'BCM2835':
+                self._logger.debug("Pi 3")
+                self.isRaspi = True
             elif match.group(1) == 'sun50iw1p1':
                 self._logger.debug("Pine A64")
                 self.isSOC = True
